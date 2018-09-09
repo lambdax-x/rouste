@@ -1,6 +1,6 @@
 [package]
 name = "rouste"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["λx.x <lambdax-x@users.noreply.github.com>"]
 description = "Generic and declarative URI based router written with insane Rust macros."
 license = "MIT"

@@ -1,3 +1,5 @@
+pub mod utils;
+
 /// Execute a callback after removing unnamed segments.
 #[macro_export]
 macro_rules! clean_and_callback {
@@ -72,8 +74,7 @@ macro_rules! route {
     }};
 
     (@parse_segment ($name:tt : $type:ty) $data:expr) => {{
-        let parse_result: Result<$type, _> = $data.parse::<$type>();
-        parse_result.ok()
+        percent_decode($data).and_then(|segment| segment.parse::<$type>().ok())
     }};
 
     (@parse_segment $name:tt $data:ident) => {{
@@ -136,12 +137,15 @@ macro_rules! route_with {
 
 #[cfg(test)]
 mod tests {
+    use utils::percent_decode;
+
     #[test]
     fn router() {
         
         let router = route_with!([ route!(/ => default)
                                  , route!(/double/(value: u32) => double)
                                  , route!(/triple_add_decrement/(value: u32)?(add: u32)&decrement => triple_add_decrement)
+                                 , route!(/count/spaces/(data: String) => count_spaces)
         ]);
 
         assert_eq!(router(""), Some(1));
@@ -162,6 +166,9 @@ mod tests {
         assert_eq!(router("/triple_add_decrement/2?"), Some(6));
         assert_eq!(router("/triple_add_decrement/2?add=4"), Some(10));
         assert_eq!(router("/triple_add_decrement/2?add=4&decrement"), Some(9));
+
+        assert_eq!(router("/count/spaces/Church is%20Great and%20Barendregt is his Prophet%21"), Some(7));
+        assert_eq!(router("/count/spaces/invalid%"), None);
     }
 
     fn default() -> u32 {
@@ -174,5 +181,9 @@ mod tests {
 
     fn triple_add_decrement(value: u32, add: Option<u32>, decrement: Option<()>) -> u32 {
         value * 3 + add.unwrap_or(0) - decrement.map(|_| 1).unwrap_or(0)
+    }
+
+    fn count_spaces(data: String) -> u32 {
+        data.chars().filter(|&c| c == ' ').count() as u32
     }
 }
