@@ -1,8 +1,12 @@
 [package]
 name = "rouste"
-version = "0.1.2"
+version = "0.2.1"
 authors = ["λx.x <lambdax-x@users.noreply.github.com>"]
 description = "Generic and declarative URI based router written with insane Rust macros."
 license = "MIT"
+repository = "https://github.com/lambdax-x/rouste"
+doc = true
+readme = "README.md"
+keywords = ["http", "route", "router"]
 
 [dependencies]

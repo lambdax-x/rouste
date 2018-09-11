@@ -1,3 +1,22 @@
+//! [`route!`]: macro.route.html
+//! [`route_with!`]: macro.route_with.html
+//!
+//! Rouste is a generic and declarative way of writing a URL based router with insane Rust macros.
+//! This can be achieved with the help of two macros: [`route!`] and [`route_with!`]. The former generate
+//! a function that tries to match the URL from a pattern, capture data from it and execute a
+//! function that computes the response for this route. The latter combines several routes in a
+//! router.
+//!
+//! Rouste is generic in the sense that a every route of a router can capture different values from
+//! the URL and that a router can return any type of value.
+//!
+//! Usage:
+//!
+//! ```
+//! #[macro_use] extern crate rouste;
+//! use rouste::utils::*;
+//! ```
+
 pub mod utils;
 
 /// Execute a callback after removing unnamed segments.
@@ -25,7 +44,59 @@ macro_rules! clean_and_callback {
 }
 
 #[macro_export]
-/// Build a route from a pattern and a callback
+/// Build a route from a pattern and a callback.
+///
+/// `route!(pattern => callback)` is a function from `&str` to `Option<T>`. The input represents a
+/// URL's path and query string. If the input matches the pattern, its segments and query
+/// parameters can be captured and exposed as parameters of the callback.
+///
+/// A pattern is defined with the following grammar:
+///
+/// ```
+/// pattern := path | path ? query_string
+/// path := root | root some_segments
+/// root := /
+/// some_segments := segment | segment / some_segments
+/// segment := ident | (ident: type)
+/// query_string := query | query & query_string
+/// query := ident | (ident: type)
+/// ```
+///
+/// The callback is a function from captured segments and query parameters to `T`. Captured
+/// segments are passed to the callback. All query parameters are captured.  Query parameters
+/// without type annotation are passed as `Option<()>`, query parameters with type annotation are
+/// passed as `Option<U>`. Any type `U` can be captured as long as they implement the `FromStr`
+/// trait.
+///
+/// Examples:
+///
+/// - Matches `/[?query_string]`, captures nothing and calls `callback()`:
+///
+/// ```
+/// route!(/ => callback)
+/// ```
+///
+/// - Matches `/help[?query_string]`, captures nothing and calls `callback()`:
+///
+/// ```
+/// route!(/help => callback)
+/// ```
+///
+/// - Matches `/sum/<a: u32>/<b: u32>[?query_string]`, captures `a` and `b` as `u32`s and calls
+/// `callback(a: u32, b: u32)`:
+///
+/// ```
+/// route!(/sum/(a: u32)/(b: u32) => callback)
+/// ```
+///
+/// - Matches `/maps/<lon: f64>/<lat: f64>?show_marker&color=<Color>`, captures `lon` and `lat` as
+/// `f64`s, `show_marker` as `Option<()>` and `color` as `Option<Color>`, and calls `callback(lon:
+/// f64, lat: f64, show_marker: Option<()>, color: Option<Color>)`:
+///
+/// ```
+/// route!(/maps/(lon: f64)/(lat: f64)?show_marker&(color: Color) => callback)
+/// ```
+
 macro_rules! route {
     (/ => $callback:ident) => {|uri: &str|
         route!(@try $callback [] [] uri)
@@ -129,6 +200,10 @@ macro_rules! route {
 
 #[macro_export]
 /// Compose a router given an URI and a list of routes.
+///
+/// `route_with![route!(...), route!(...), route!(...)]` is a function from `&str` to `Option<T>`.
+/// It will try to match each route sequentially and return the result of the first match.
+/// Otherwise it will return `None`.
 macro_rules! route_with {
     [$($route:expr),*] => {|uri| {
         None$(.or($route(uri)))*
