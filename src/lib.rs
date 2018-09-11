@@ -130,7 +130,7 @@ macro_rules! route {
 #[macro_export]
 /// Compose a router given an URI and a list of routes.
 macro_rules! route_with {
-    ([$($route:expr),*]) => {|uri| {
+    [$($route:expr),*] => {|uri| {
         None$(.or($route(uri)))*
     }}
 }
@@ -142,11 +142,11 @@ mod tests {
     #[test]
     fn router() {
         
-        let router = route_with!([ route!(/ => default)
-                                 , route!(/double/(value: u32) => double)
-                                 , route!(/triple_add_decrement/(value: u32)?(add: u32)&decrement => triple_add_decrement)
-                                 , route!(/count/spaces/(data: String) => count_spaces)
-        ]);
+        let router = route_with![ route!(/ => default)
+                                , route!(/double/(value: u32) => double)
+                                , route!(/triple_add_decrement/(value: u32)?(add: u32)&decrement => triple_add_decrement)
+                                , route!(/count/spaces/(data: String) => count_spaces)
+                                ];
 
         assert_eq!(router(""), Some(1));
         assert_eq!(router("?"), Some(1));
